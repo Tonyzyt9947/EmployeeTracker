@@ -78,31 +78,6 @@ const addEmployeeQ = [
     }
 ]
 
-const updateEmployeeQ = [
-    {
-        type: 'list',
-        name: 'name',
-        message: 'Select an employee to update their information:',
-        choices: function(){
-            const choiceArr = []
-            db.query(`SELECT * FROM employees`, function (err, results) {
-                results.forEach(employee=>{choiceArr.push(employee.first_name+" "+employee.last_name)})
-            })
-            return choiceArr
-        }
-    },
-    {
-        type: 'input',
-        name: 'role',
-        message: 'Enter the new role of this employee:',
-    },
-    {
-        type: 'input',
-        name: 'manager',
-        message: 'Enter the last name of the new manager of this employee:',
-    }
-]
-
 function promptMenu(){
     inquirer.prompt(menu)
     .then((answers)=>{
@@ -138,90 +113,159 @@ function backtoMenu(){
         if (answers.name="return"){
             promptMenu()
         }
-        // check if else is needed
     })
 }
 
 function viewDp(){
     db.query('SELECT ID, Name FROM departments', function (err, results) {
         console.table(results);
+        backtoMenu()
     });
-    backtoMenu()
+    
 }
 
 function viewRole(){
     db.query('Select r.ID, r.title AS "Job Title", r.Salary, d.name AS Department FROM roles AS r, departments AS d WHERE r.department_id=d.id;', function (err, results) {
         console.table(results);
+        backtoMenu()
     });
-    backtoMenu()
+    
 }
 
 function viewEmployee(){
-    db.query('SELECT e.ID, e.first_name, e.last_name, r.title AS "Job Title", d.name AS Department, r.Salary, m.last_name AS Manager FROM departments AS d, roles AS r, employees AS e, employees AS m WHERE e.role_id=r.id AND r.department_id=d.id AND e.manager_id=m.id;', function (err, results) {
+
+    db.query(
+        `SELECT e.ID, 
+                e.first_name AS "First Name",
+                e.last_name AS "Last Name",
+                r.title AS "Job Title", 
+                d.name AS Department, 
+                r.Salary, 
+                m.last_name AS Manager 
+                
+                FROM  employees e
+                LEFT JOIN employees m
+                  ON e.manager_id = m.id
+                LEFT JOIN roles r
+                  ON e.role_id=r.id
+                LEFT JOIN departments d
+                  ON r.department_id=d.id`
+                
+        
+        
+        , function (err, results) {
         console.table(results);
-    });
-    backtoMenu()
+        backtoMenu()
+      });
+    
 }
 
 function promptDp(){
-    inquirer.prompt(addDpQ)
+    inquirer.prompt(addDpQ) 
     .then((answers)=>{
         db.query('INSERT INTO departments SET ?', {name: answers.name}, function (err, results) {
+            
+            console.log(
+`
+Department "${answers.name}" added
+`)
+
             viewDp()
-            console.log(`Department "${answers.name}" added`)
         });
     })
-    .then(()=>{backtoMenu()})
 }
 
 function promptRole(){
     inquirer.prompt(addRoleQ)
     .then((answers)=>{
-        db.query(`SELECT ID FROM departments WHERE name=${answers.department}`, function (err, results) {
+        db.query(`SELECT ID FROM departments WHERE name="${answers.department}"`, function (err, results) {
             let id = results[0].ID;
             db.query('INSERT INTO roles SET ?', {title: answers.name, salary: answers.salary, department_id: id}, function (err, results) {
+                
+                console.log(
+`
+Role "${answers.name}" added
+`)
                 viewRole()
-                console.log(`Role "${answers.name}" added`)
             });
           
           });
     })
-    .then(()=>{backtoMenu()})
 }
 
 function promptEmployee(){
     inquirer.prompt(addEmployeeQ)
     .then((answers)=>{
-        db.query(`SELECT ID FROM roles WHERE name=${answers.role}`, function (err, results) {
+        db.query(`SELECT ID FROM roles WHERE title="${answers.role}"`, function (err, results) {
             let roleid = results[0].ID;
-            db.query(`SELECT ID FROM employees WHERE last_name=${answers.manager}`, function (err, results) {
+            db.query(`SELECT ID FROM employees WHERE last_name="${answers.manager}"`, function (err, results) {
                 let managerid = results[0].ID;
                 db.query('INSERT INTO employees SET ?', {first_name: answers.first_name, last_name: answers.last_name, role_id:roleid, manager_id:managerid }, function (err, results) {
+                    
+                    console.log(
+`
+Employee "${answers.first_name, answers.last_name}" added
+`)
                     viewEmployee()
-                    console.log(`Employee "${answers.first_name, answers.last_name}" added`)
                 });
             });
           
         });
     })
-    .then(()=>{backtoMenu()})
 }
 
 function updateEmployee(){
-    inquirer.prompt(updateEmployeeQ)
-    .then((answers)=>{
-        db.query(`SELECT ID FROM roles WHERE name=${answers.role}`, function (err, results) {
-            let roleid = results[0].ID;
-            db.query(`SELECT ID FROM roles WHERE name=${answers.manager}`, function (err, results) {
-                let managerid = results[0].ID;
-                db.query(`UPDATE employees SET role_id=${roleid}, manager_id=${managerid} WHERE first_name=${answers.name.split(" ")[0]}}`, function (err, results) {
-                    viewEmployee()
-                    console.log(`Employee "${answers.first_name, answers.last_name}" information updated`)
+    db.query(`SELECT * FROM employees`, function (err, results) {
+        const updateEmployeeQ = [
+            {
+                type: 'list',
+                name: 'name',
+                message: 'Select an employee to update their information:',
+                choices: function(){
+                    let choiceArr = [];
+                    
+                        for(i=0;i<results.length;i++){
+                            choiceArr.push(results[i].first_name+" "+results[i].last_name)
+                        }
+                    console.log(choiceArr)
+                    return choiceArr
+                    }
+        
+            },
+            
+            {
+                type: 'input',
+                name: 'role',
+                message: 'Enter the new role of this employee:',
+            },
+            {
+                type: 'input',
+                name: 'manager',
+                message: 'Enter the last name of the new manager of this employee:',
+            }
+        ]    
+
+
+
+        inquirer.prompt(updateEmployeeQ)
+        .then((answers)=>{
+            db.query(`SELECT ID FROM roles WHERE title="${answers.role}"`, function (err, results) {
+                let roleid = results[0].ID;
+                db.query(`SELECT ID FROM employees WHERE last_name="${answers.manager}"`, function (err, results) {
+                    let managerid = results[0].ID;
+                    db.query(`UPDATE employees SET role_id="${roleid}", manager_id="${managerid}" WHERE first_name="${answers.name.split(" ")[0]}"`, function (err, results) {
+                        
+                        console.log(
+`
+Employee "${answers.name}" information updated
+`)
+                        viewEmployee()  
                 });
             });
           
         });
 
     })
-    .then(()=>{backtoMenu()})
-}
+})}
+
+promptMenu()
