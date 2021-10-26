@@ -1,7 +1,9 @@
+// Import required files and modules
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
 const cTable = require('console.table');
 
+// Establish connection with sql server
 const db = mysql.createConnection(
     {
       host: 'localhost',
@@ -12,6 +14,8 @@ const db = mysql.createConnection(
     console.log(`Connected to employee_db database.`)
 );
 
+// Questions prompted by inquirer
+// Menu selections
 const menu = [
     {
         type: 'list',
@@ -20,7 +24,7 @@ const menu = [
         choices:['View all departments','View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
     }
 ]
-
+// Return to Menu option
 const returnMenu = [
     {
         type: 'input',
@@ -28,7 +32,7 @@ const returnMenu = [
         message: 'Enter "return" to return to menu',
     }
 ]
-
+// Add department prompt
 const addDpQ = [
     {
         type: 'input',
@@ -36,7 +40,7 @@ const addDpQ = [
         message: 'Enter the name of this department:',
     }
 ]
-
+// Add role prompt
 const addRoleQ = [
     {
         type: 'input',
@@ -54,7 +58,7 @@ const addRoleQ = [
         message: 'Enter the department of this role:',
     }
 ]
-
+// Add employee prompt
 const addEmployeeQ = [
     {
         type: 'input',
@@ -78,6 +82,7 @@ const addEmployeeQ = [
     }
 ]
 
+// Inquirer function that prompts menu
 function promptMenu(){
     inquirer.prompt(menu)
     .then((answers)=>{
@@ -107,6 +112,7 @@ function promptMenu(){
     })
 }
 
+// Inquirer function return to menu
 function backtoMenu(){
     inquirer.prompt(returnMenu)
     .then((answers)=>{
@@ -116,6 +122,7 @@ function backtoMenu(){
     })
 }
 
+// View department function, query to sql server to display desired table
 function viewDp(){
     db.query('SELECT ID, Name FROM departments', function (err, results) {
         console.table(results);
@@ -124,14 +131,23 @@ function viewDp(){
     
 }
 
+// View roles function, query to sql server to display desired table
 function viewRole(){
-    db.query('Select r.ID, r.title AS "Job Title", r.Salary, d.name AS Department FROM roles AS r, departments AS d WHERE r.department_id=d.id;', function (err, results) {
+    db.query(
+        `Select r.ID, 
+                r.title AS "Job Title", 
+                r.Salary, 
+                d.name AS Department 
+                FROM roles r, departments d 
+                WHERE r.department_id=d.id;`, 
+        
+        function (err, results) {
         console.table(results);
         backtoMenu()
     });
     
 }
-
+// View employees function, query to sql server to display desired table
 function viewEmployee(){
 
     db.query(
@@ -149,17 +165,15 @@ function viewEmployee(){
                 LEFT JOIN roles r
                   ON e.role_id=r.id
                 LEFT JOIN departments d
-                  ON r.department_id=d.id`
+                  ON r.department_id=d.id`,
                 
-        
-        
-        , function (err, results) {
+        function (err, results) {
         console.table(results);
         backtoMenu()
       });
     
 }
-
+// Inquirer function prompts that adds department, and manipulates database accordingly
 function promptDp(){
     inquirer.prompt(addDpQ) 
     .then((answers)=>{
@@ -174,7 +188,7 @@ Department "${answers.name}" added
         });
     })
 }
-
+// Inquirer function prompts that adds role, and manipulates database accordingly
 function promptRole(){
     inquirer.prompt(addRoleQ)
     .then((answers)=>{
@@ -192,7 +206,7 @@ Role "${answers.name}" added
           });
     })
 }
-
+// Inquirer function prompts that adds employee, and manipulates database accordingly
 function promptEmployee(){
     inquirer.prompt(addEmployeeQ)
     .then((answers)=>{
@@ -213,7 +227,7 @@ Employee "${answers.first_name, answers.last_name}" added
         });
     })
 }
-
+// Inquirer function prompts that updates employee, and manipulates database accordingly
 function updateEmployee(){
     db.query(`SELECT * FROM employees`, function (err, results) {
         const updateEmployeeQ = [
@@ -227,7 +241,7 @@ function updateEmployee(){
                         for(i=0;i<results.length;i++){
                             choiceArr.push(results[i].first_name+" "+results[i].last_name)
                         }
-                    console.log(choiceArr)
+
                     return choiceArr
                     }
         
@@ -268,4 +282,5 @@ Employee "${answers.name}" information updated
     })
 })}
 
+// Initialize menu upon start of application
 promptMenu()
