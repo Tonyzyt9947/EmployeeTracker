@@ -12,20 +12,6 @@ const db = mysql.createConnection(
     console.log(`Connected to employee_db database.`)
 );
 
-db.query('SELECT * FROM departments', function (err, results) {
-    console.table(results);
-});
-
-db.query('SELECT * FROM roles', function (err, results) {
-    console.table(results);
-});
-
-db.query("SELECT * FROM employees JOIN roles ON employees.role_id = roles.id", function (err, results) {
-    console.log(err)
-    console.table(results);
-});
-
-
 const menu = [
     {
         type: 'list',
@@ -83,3 +69,50 @@ const addEmployeeQ = [
         message: 'Enter the name of manager of employee, (Enter null if this employee has no manager)',
     }
 ]
+
+function showMenu(){
+    inquirer.prompt(menu)
+    .then((answers)=>{
+        switch(answers.menu){
+            case 'View all departments':
+                viewDp();
+                break; 
+            case 'View all roles':
+                viewRole();
+                break; 
+            case 'View all employees':
+                viewEmployee();
+                break;
+            case 'Add a department':
+                break;
+            case 'Add a role':
+                break;
+            case 'Add an employee':
+                break;
+            case 'Update an employee role':
+                break;
+        }
+    })
+}
+
+function viewDp(){
+    db.query('SELECT ID, Name FROM departments', function (err, results) {
+        console.table(results);
+    });
+}
+
+function viewRole(){
+    db.query('Select r.ID, r.title AS "Job Title", r.Salary, d.name AS Department FROM roles AS r, departments AS d WHERE r.department_id=d.id;', function (err, results) {
+        console.table(results);
+    });
+}
+
+function viewEmployee(){
+    db.query('SELECT e.ID, e.first_name, e.last_name, r.title AS "Job Title", d.name AS Department, r.Salary, m.last_name AS Manager FROM departments AS d, roles AS r, employees AS e, employees AS m WHERE e.role_id=r.id AND r.department_id=d.id AND e.manager_id=m.id;', function (err, results) {
+        console.table(results);
+    });
+}
+
+function addDp(dpName){
+    
+}
